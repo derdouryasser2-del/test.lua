@@ -1,35 +1,40 @@
--- ===== AUTO RELOAD APRES TELEPORT =====
-if queue_on_teleport then
-    queue_on_teleport([[
-        task.wait(1)
-        loadstring(game:HttpGet("raw.githubusercontent.com/derdouryasser2-del/test.lua/refs/heads/main/test.lua"))()
-    ]])
-end
--- ⚠️ IMPORTANT :
--- remplace SCRIPT_REEXEC_PLACEHOLDER par l’URL ou le raw du script
--- si tu testes en local, tu peux ignorer cette partie
+-- ========= CONFIG =========
+local RAW_URL = "https://raw.githubusercontent.com/derdouryasser2-del/test.lua/refs/heads/main/test.lua"
+local TARGET_CFRAME = CFrame.new(-51.3, 3.2, 62.9)
+local DELAY_AFTER_TP = 1.5
+-- ==========================
 
+-- ===== AUTO REEXEC APRES TELEPORT =====
+if queue_on_teleport then
+    queue_on_teleport(([[ 
+        loadstring(game:HttpGet("%s"))()
+    ]]):format(RAW_URL))
+end
 -- =====================================
 
 local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
-
 local player = Players.LocalPlayer
 
--- POSITION DE TEST
-local TARGET_CFRAME = CFrame.new(-51.3,3.2, 62.9)
+-- éviter doublon GUI
+pcall(function()
+    if game.CoreGui:FindFirstChild("DeltaTestTP_E") then
+        game.CoreGui.DeltaTestTP_E:Destroy()
+    end
+end)
 
 local enabled = false
 
--- UI
+-- ===== UI =====
 local gui = Instance.new("ScreenGui")
 gui.Name = "DeltaTestTP_E"
+gui.ResetOnSpawn = false
 gui.Parent = game.CoreGui
 
 local frame = Instance.new("Frame")
 frame.Size = UDim2.new(0, 240, 0, 80)
 frame.Position = UDim2.new(0.5, -120, 0.5, -40)
-frame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+frame.BackgroundColor3 = Color3.fromRGB(25,25,25)
 frame.Parent = gui
 
 local btn = Instance.new("TextButton")
@@ -37,7 +42,7 @@ btn.Size = UDim2.new(1, -10, 1, -10)
 btn.Position = UDim2.new(0, 5, 0, 5)
 btn.Text = "AUTO TP : OFF"
 btn.TextScaled = true
-btn.BackgroundColor3 = Color3.fromRGB(170, 40, 40)
+btn.BackgroundColor3 = Color3.fromRGB(170,40,40)
 btn.Parent = frame
 
 -- ===== DRAG =====
@@ -92,14 +97,14 @@ local function getClosestPrompt(maxDistance)
     return closest
 end
 
--- ===== TP + E APRES 1.5s =====
+-- ===== TP + E =====
 local function teleportAndInteract()
     local char = player.Character
     if not char or not char:FindFirstChild("HumanoidRootPart") then return end
 
     char.HumanoidRootPart.CFrame = TARGET_CFRAME
 
-    task.delay(1.5, function()
+    task.delay(DELAY_AFTER_TP, function()
         if not enabled then return end
         local prompt = getClosestPrompt(15)
         if prompt then
@@ -110,17 +115,16 @@ local function teleportAndInteract()
     end)
 end
 
--- ===== BOUTON =====
+-- ===== BUTTON =====
 btn.MouseButton1Click:Connect(function()
     enabled = not enabled
-
     if enabled then
         btn.Text = "AUTO TP : ON"
-        btn.BackgroundColor3 = Color3.fromRGB(40, 170, 40)
+        btn.BackgroundColor3 = Color3.fromRGB(40,170,40)
         teleportAndInteract()
     else
         btn.Text = "AUTO TP : OFF"
-        btn.BackgroundColor3 = Color3.fromRGB(170, 40, 40)
+        btn.BackgroundColor3 = Color3.fromRGB(170,40,40)
     end
 end)
 
@@ -131,5 +135,3 @@ player.CharacterAdded:Connect(function()
         teleportAndInteract()
     end
 end)
-
-
