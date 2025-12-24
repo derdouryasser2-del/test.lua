@@ -4,69 +4,87 @@ local TARGET_CFRAME = CFrame.new(-51.3, 3.2, 62.9)
 local DELAY_AFTER_TP = 1.5
 -- ==========================
 
--- ===== AUTO REEXEC APRES TELEPORT =====
 if queue_on_teleport then
-    queue_on_teleport(([[ 
-        loadstring(game:HttpGet("%s"))()
-    ]]):format(RAW_URL))
+    queue_on_teleport(([[loadstring(game:HttpGet("%s"))()]]):format(RAW_URL))
 end
--- =====================================
 
 local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
 local player = Players.LocalPlayer
 
--- éviter doublon GUI
 pcall(function()
     if game.CoreGui:FindFirstChild("DeltaTestTP_E") then
         game.CoreGui.DeltaTestTP_E:Destroy()
     end
 end)
 
-local enabled = false
-
--- ===== GUI =====
 local gui = Instance.new("ScreenGui")
 gui.Name = "DeltaTestTP_E"
 gui.ResetOnSpawn = false
 gui.Parent = game.CoreGui
 
--- ===== Frame Auto TP =====
-local frame = Instance.new("Frame")
-frame.Size = UDim2.new(0, 240, 0, 80)
-frame.Position = UDim2.new(0.5, -120, 0.5, -40)
-frame.BackgroundColor3 = Color3.fromRGB(25,25,25)
-frame.Parent = gui
+-- ===== FRAME PRINCIPAL =====
+local mainFrame = Instance.new("Frame")
+mainFrame.Size = UDim2.new(0, 260, 0, 300)
+mainFrame.Position = UDim2.new(0.5, -130, 0.5, -150)
+mainFrame.BackgroundColor3 = Color3.fromRGB(25,25,25)
+mainFrame.Parent = gui
 
-local btn = Instance.new("TextButton")
-btn.Size = UDim2.new(1, -10, 1, -10)
-btn.Position = UDim2.new(0, 5, 0, 5)
-btn.Text = "AUTO TP : OFF"
-btn.TextScaled = true
-btn.BackgroundColor3 = Color3.fromRGB(170,40,40)
-btn.Parent = frame
+-- ===== Onglets =====
+local tabsFrame = Instance.new("Frame")
+tabsFrame.Size = UDim2.new(1,0,0,30)
+tabsFrame.Position = UDim2.new(0,0,0,0)
+tabsFrame.BackgroundTransparency = 1
+tabsFrame.Parent = mainFrame
 
--- ===== DRAG =====
+local autoTPBtn = Instance.new("TextButton")
+autoTPBtn.Size = UDim2.new(0.5,0,1,0)
+autoTPBtn.Position = UDim2.new(0,0,0,0)
+autoTPBtn.Text = "AUTO TP"
+autoTPBtn.BackgroundColor3 = Color3.fromRGB(60,60,60)
+autoTPBtn.TextScaled = true
+autoTPBtn.Parent = tabsFrame
+
+local macroBtn = Instance.new("TextButton")
+macroBtn.Size = UDim2.new(0.5,0,1,0)
+macroBtn.Position = UDim2.new(0.5,0,0,0)
+macroBtn.Text = "MACRO"
+macroBtn.BackgroundColor3 = Color3.fromRGB(40,40,40)
+macroBtn.TextScaled = true
+macroBtn.Parent = tabsFrame
+
+-- ===== Frames des onglets =====
+local autoTPFrame = Instance.new("Frame")
+autoTPFrame.Size = UDim2.new(1,0,1,-30)
+autoTPFrame.Position = UDim2.new(0,0,0,30)
+autoTPFrame.BackgroundTransparency = 1
+autoTPFrame.Parent = mainFrame
+
+local macroFrame = Instance.new("Frame")
+macroFrame.Size = UDim2.new(1,0,1,-30)
+macroFrame.Position = UDim2.new(0,0,0,30)
+macroFrame.BackgroundTransparency = 1
+macroFrame.Visible = false
+macroFrame.Parent = mainFrame
+
+-- ===== DRAG PRINCIPAL =====
 local dragging, dragStart, startPos
-
-frame.InputBegan:Connect(function(input)
+mainFrame.InputBegan:Connect(function(input)
     if input.UserInputType == Enum.UserInputType.MouseButton1 then
         dragging = true
         dragStart = input.Position
-        startPos = frame.Position
+        startPos = mainFrame.Position
     end
 end)
-
 UserInputService.InputEnded:Connect(function(input)
     if input.UserInputType == Enum.UserInputType.MouseButton1 then
         dragging = false
     end
 end)
-
 UserInputService.InputChanged:Connect(function(input)
     if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
         local delta = input.Position - dragStart
-        frame.Position = UDim2.new(
+        mainFrame.Position = UDim2.new(
             startPos.X.Scale,
             startPos.X.Offset + delta.X,
             startPos.Y.Scale,
@@ -75,14 +93,35 @@ UserInputService.InputChanged:Connect(function(input)
     end
 end)
 
--- ===== PROXIMITY PROMPT =====
+-- ===== SWITCH ONGLET =====
+autoTPBtn.MouseButton1Click:Connect(function()
+    autoTPFrame.Visible = true
+    macroFrame.Visible = false
+    autoTPBtn.BackgroundColor3 = Color3.fromRGB(60,60,60)
+    macroBtn.BackgroundColor3 = Color3.fromRGB(40,40,40)
+end)
+macroBtn.MouseButton1Click:Connect(function()
+    autoTPFrame.Visible = false
+    macroFrame.Visible = true
+    autoTPBtn.BackgroundColor3 = Color3.fromRGB(40,40,40)
+    macroBtn.BackgroundColor3 = Color3.fromRGB(60,60,60)
+end)
+
+-- ===== CONTENU AUTO TP =====
+local enabled = false
+local btn = Instance.new("TextButton")
+btn.Size = UDim2.new(1, -10, 0, 60)
+btn.Position = UDim2.new(0,5,0,10)
+btn.Text = "AUTO TP : OFF"
+btn.TextScaled = true
+btn.BackgroundColor3 = Color3.fromRGB(170,40,40)
+btn.Parent = autoTPFrame
+
 local function getClosestPrompt(maxDistance)
     local char = player.Character
     if not char or not char:FindFirstChild("HumanoidRootPart") then return end
-
     local root = char.HumanoidRootPart
     local closest, dist = nil, maxDistance or 15
-
     for _, obj in ipairs(workspace:GetDescendants()) do
         if obj:IsA("ProximityPrompt") and obj.Enabled then
             local part = obj.Parent
@@ -98,14 +137,11 @@ local function getClosestPrompt(maxDistance)
     return closest
 end
 
--- ===== TP + E =====
 local function teleportAndInteract()
     local char = player.Character
     if not char or not char:FindFirstChild("HumanoidRootPart") then return end
-
     char.HumanoidRootPart.CFrame = TARGET_CFRAME
-
-    task.delay(DELAY_AFTER_TP, function()
+    task.delay(DELAY_AFTER_TP,function()
         if not enabled then return end
         local prompt = getClosestPrompt(15)
         if prompt then
@@ -116,7 +152,6 @@ local function teleportAndInteract()
     end)
 end
 
--- ===== BUTTON AUTO TP =====
 btn.MouseButton1Click:Connect(function()
     enabled = not enabled
     if enabled then
@@ -129,7 +164,6 @@ btn.MouseButton1Click:Connect(function()
     end
 end)
 
--- ===== RESPAWN =====
 player.CharacterAdded:Connect(function()
     task.wait(0.3)
     if enabled then
@@ -137,16 +171,10 @@ player.CharacterAdded:Connect(function()
     end
 end)
 
--- ===== FRAME MACRO =====
-local macroFrame = Instance.new("Frame")
-macroFrame.Size = UDim2.new(0, 300, 0, 120)
-macroFrame.Position = UDim2.new(0.5, -150, 0.5, 50)
-macroFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
-macroFrame.Parent = gui
-
+-- ===== CONTENU MACRO =====
 local macroLabel = Instance.new("TextLabel")
-macroLabel.Size = UDim2.new(1, -10, 0, 20)
-macroLabel.Position = UDim2.new(0, 5, 0, 5)
+macroLabel.Size = UDim2.new(1,-10,0,20)
+macroLabel.Position = UDim2.new(0,5,0,10)
 macroLabel.Text = "Macro Recorder"
 macroLabel.TextScaled = true
 macroLabel.BackgroundTransparency = 1
@@ -154,92 +182,63 @@ macroLabel.TextColor3 = Color3.fromRGB(255,255,255)
 macroLabel.Parent = macroFrame
 
 local recordBtn = Instance.new("TextButton")
-recordBtn.Size = UDim2.new(1, -10, 0, 40)
-recordBtn.Position = UDim2.new(0, 5, 0, 30)
+recordBtn.Size = UDim2.new(1,-10,0,50)
+recordBtn.Position = UDim2.new(0,5,0,40)
 recordBtn.Text = "RECORD"
 recordBtn.TextScaled = true
 recordBtn.BackgroundColor3 = Color3.fromRGB(170,40,40)
 recordBtn.Parent = macroFrame
 
 local playBtn = Instance.new("TextButton")
-playBtn.Size = UDim2.new(1, -10, 0, 40)
-playBtn.Position = UDim2.new(0, 5, 0, 75)
+playBtn.Size = UDim2.new(1,-10,0,50)
+playBtn.Position = UDim2.new(0,5,0,100)
 playBtn.Text = "PLAY MACRO"
 playBtn.TextScaled = true
 playBtn.BackgroundColor3 = Color3.fromRGB(40,170,40)
 playBtn.Parent = macroFrame
 
--- ===== DRAG MACRO FRAME =====
-local macroDragging, macroDragStart, macroStartPos
-macroFrame.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 then
-        macroDragging = true
-        macroDragStart = input.Position
-        macroStartPos = macroFrame.Position
-    end
-end)
-UserInputService.InputEnded:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 then
-        macroDragging = false
-    end
-end)
-UserInputService.InputChanged:Connect(function(input)
-    if macroDragging and input.UserInputType == Enum.UserInputType.MouseMovement then
-        local delta = input.Position - macroDragStart
-        macroFrame.Position = UDim2.new(
-            macroStartPos.X.Scale,
-            macroStartPos.X.Offset + delta.X,
-            macroStartPos.Y.Scale,
-            macroStartPos.Y.Offset + delta.Y
-        )
-    end
-end)
-
--- ===== MACRO LOGIC =====
 local recording = false
 local macroActions = {}
 
-local function recordAction(actionType, data)
+local function recordAction(actionType,data)
     if recording then
-        table.insert(macroActions, {type = actionType, data = data})
+        table.insert(macroActions,{type=actionType,data=data})
     end
 end
 
--- Hook exemple pour les événements du jeu
+-- Hook exemple (à remplacer par tes RemoteEvents)
 local function hookGameEvents()
-    -- Remplacer par tes RemoteEvents du jeu
     if game.ReplicatedStorage:FindFirstChild("PlaceUnit") then
-        game.ReplicatedStorage.PlaceUnit.OnClientEvent:Connect(function(unitType, position)
-            recordAction("place", {unitType = unitType, position = position})
+        game.ReplicatedStorage.PlaceUnit.OnClientEvent:Connect(function(unitType,pos)
+            recordAction("place",{unitType=unitType,position=pos})
         end)
     end
     if game.ReplicatedStorage:FindFirstChild("UpgradeUnit") then
         game.ReplicatedStorage.UpgradeUnit.OnClientEvent:Connect(function(unit)
-            recordAction("upgrade", {unit = unit})
+            recordAction("upgrade",{unit=unit})
         end)
     end
 end
 hookGameEvents()
 
--- ===== BUTTONS MACRO =====
 recordBtn.MouseButton1Click:Connect(function()
     recording = not recording
     if recording then
         recordBtn.Text = "RECORDING..."
         recordBtn.BackgroundColor3 = Color3.fromRGB(255,100,100)
-        macroActions = {} -- reset
+        macroActions = {}
     else
         recordBtn.Text = "RECORD"
         recordBtn.BackgroundColor3 = Color3.fromRGB(170,40,40)
-        print("Macro saved! Actions count:", #macroActions)
+        print("Macro saved! Actions count:",#macroActions)
     end
 end)
 
 playBtn.MouseButton1Click:Connect(function()
-    for _, action in ipairs(macroActions) do
-        if action.type == "place" then
-            game.ReplicatedStorage.PlaceUnit:FireServer(action.data.unitType, action.data.position)
-        elseif action.type == "upgrade" then
+    for _,action in ipairs(macroActions) do
+        if action.type=="place" then
+            game.ReplicatedStorage.PlaceUnit:FireServer(action.data.unitType,action.data.position)
+        elseif action.type=="upgrade" then
             game.ReplicatedStorage.UpgradeUnit:FireServer(action.data.unit)
         end
         task.wait(0.3)
