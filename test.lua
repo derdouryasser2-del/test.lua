@@ -1,3 +1,16 @@
+-- ===== AUTO RELOAD APRES TELEPORT =====
+if queue_on_teleport then
+    queue_on_teleport([[
+        task.wait(1)
+        loadstring(game:HttpGet("raw.githubusercontent.com/derdouryasser2-del/test.lua/refs/heads/main/test.lua"))()
+    ]])
+end
+-- ⚠️ IMPORTANT :
+-- remplace SCRIPT_REEXEC_PLACEHOLDER par l’URL ou le raw du script
+-- si tu testes en local, tu peux ignorer cette partie
+
+-- =====================================
+
 local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
 
@@ -27,10 +40,8 @@ btn.TextScaled = true
 btn.BackgroundColor3 = Color3.fromRGB(170, 40, 40)
 btn.Parent = frame
 
--- 🔹 DRAG SYSTEM
-local dragging = false
-local dragStart
-local startPos
+-- ===== DRAG =====
+local dragging, dragStart, startPos
 
 frame.InputBegan:Connect(function(input)
     if input.UserInputType == Enum.UserInputType.MouseButton1 then
@@ -58,10 +69,10 @@ UserInputService.InputChanged:Connect(function(input)
     end
 end)
 
--- 🔍 ProximityPrompt le plus proche
+-- ===== PROXIMITY PROMPT =====
 local function getClosestPrompt(maxDistance)
     local char = player.Character
-    if not char or not char:FindFirstChild("HumanoidRootPart") then return nil end
+    if not char or not char:FindFirstChild("HumanoidRootPart") then return end
 
     local root = char.HumanoidRootPart
     local closest, dist = nil, maxDistance or 15
@@ -78,21 +89,18 @@ local function getClosestPrompt(maxDistance)
             end
         end
     end
-
     return closest
 end
 
--- TP + E après 4s
+-- ===== TP + E APRES 1.5s =====
 local function teleportAndInteract()
     local char = player.Character
     if not char or not char:FindFirstChild("HumanoidRootPart") then return end
 
-    -- TP client (test anti-cheat)
     char.HumanoidRootPart.CFrame = TARGET_CFRAME
 
-    task.delay(4, function()
+    task.delay(1.5, function()
         if not enabled then return end
-
         local prompt = getClosestPrompt(15)
         if prompt then
             prompt:InputHoldBegin()
@@ -102,7 +110,7 @@ local function teleportAndInteract()
     end)
 end
 
--- Bouton
+-- ===== BOUTON =====
 btn.MouseButton1Click:Connect(function()
     enabled = not enabled
 
@@ -116,7 +124,7 @@ btn.MouseButton1Click:Connect(function()
     end
 end)
 
--- Retest après respawn
+-- ===== RESPAWN =====
 player.CharacterAdded:Connect(function()
     task.wait(0.3)
     if enabled then
