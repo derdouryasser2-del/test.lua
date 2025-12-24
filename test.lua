@@ -107,7 +107,7 @@ macroBtn.MouseButton1Click:Connect(function()
     macroBtn.BackgroundColor3 = Color3.fromRGB(60,60,60)
 end)
 
--- ===== CONTENU AUTO TP =====
+-- ===== CONTENU AUTO TP (inchangé) =====
 local enabled = false
 local btn = Instance.new("TextButton")
 btn.Size = UDim2.new(1, -10, 0, 60)
@@ -206,20 +206,29 @@ local function recordAction(actionType,data)
     end
 end
 
--- Hook exemple (à remplacer par tes RemoteEvents)
-local function hookGameEvents()
-    if game.ReplicatedStorage:FindFirstChild("PlaceUnit") then
-        game.ReplicatedStorage.PlaceUnit.OnClientEvent:Connect(function(unitType,pos)
-            recordAction("place",{unitType=unitType,position=pos})
-        end)
-    end
-    if game.ReplicatedStorage:FindFirstChild("UpgradeUnit") then
-        game.ReplicatedStorage.UpgradeUnit.OnClientEvent:Connect(function(unit)
-            recordAction("upgrade",{unit=unit})
-        end)
+-- ===== Hook des boutons du jeu pour enregistrer automatiquement =====
+-- Remplacez ces chemins par les vrais boutons de votre jeu
+local function hookGameButtons()
+    -- Exemple : tous les boutons de placement d'unités
+    for _, button in ipairs(player.PlayerGui.MainUI:GetDescendants()) do
+        if button:IsA("TextButton") and button.Name:match("PlaceUnit") then
+            button.MouseButton1Click:Connect(function()
+                local unitType = button.Name -- ou récupère le type exact
+                local position = Vector3.new(0,0,0) -- si le jeu fournit la position, la mettre ici
+                recordAction("place",{unitType=unitType,position=position})
+            end)
+        end
+        -- Exemple : boutons d'amélioration
+        if button:IsA("TextButton") and button.Name:match("UpgradeUnit") then
+            button.MouseButton1Click:Connect(function()
+                local unit = {} -- récupère l'instance de l'unité correspondante
+                recordAction("upgrade",{unit=unit})
+            end)
+        end
     end
 end
-hookGameEvents()
+
+hookGameButtons()
 
 recordBtn.MouseButton1Click:Connect(function()
     recording = not recording
@@ -237,9 +246,14 @@ end)
 playBtn.MouseButton1Click:Connect(function()
     for _,action in ipairs(macroActions) do
         if action.type=="place" then
-            game.ReplicatedStorage.PlaceUnit:FireServer(action.data.unitType,action.data.position)
+            -- Rejouer placement via RemoteEvent
+            if game.ReplicatedStorage:FindFirstChild("PlaceUnit") then
+                game.ReplicatedStorage.PlaceUnit:FireServer(action.data.unitType,action.data.position)
+            end
         elseif action.type=="upgrade" then
-            game.ReplicatedStorage.UpgradeUnit:FireServer(action.data.unit)
+            if game.ReplicatedStorage:FindFirstChild("UpgradeUnit") then
+                game.ReplicatedStorage.UpgradeUnit:FireServer(action.data.unit)
+            end
         end
         task.wait(0.3)
     end
