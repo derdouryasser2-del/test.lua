@@ -48,8 +48,8 @@ gui.Name = "AutoTP_MACRO"
 gui.ResetOnSpawn = false
 
 local frame = Instance.new("Frame", gui)
-frame.Size = UDim2.new(0, 300, 0, 240)
-frame.Position = UDim2.new(0.5, -150, 0.5, -120)
+frame.Size = UDim2.new(0, 300, 0, 260)
+frame.Position = UDim2.new(0.5, -150, 0.5, -130)
 frame.BackgroundColor3 = Color3.fromRGB(30,30,30)
 
 -- ========= DRAG =========
@@ -131,46 +131,86 @@ local function autoTP()
     end
 end
 
--- ========= MACRO MANUELLE =========
--- ✍️ TU MODIFIES ICI
-local MACRO = {
-    {type="place", unit="3881493602:7449", pos=Vector3.new(-76.7,126.2,-215.5), r=0},
-    {type="upgrade", id=1},
-    {type="upgrade", id=1},
-}
-
+-- ========= MACRO ENREGISTRABLE =========
+local macro = {}
+local recording = false
 local macroRunning = false
+local lastActionTime = 0
+
+local function startRecording()
+    macro = {}
+    recording = true
+    lastActionTime = tick()
+    print("⏺️ Recording started")
+end
+
+local function stopRecording()
+    recording = false
+    print("⏹️ Recording stopped, "..#macro.." actions saved")
+end
+
+local function recordAction(actionType, data)
+    if not recording then return end
+    local now = tick()
+    local delay = now - lastActionTime
+    table.insert(macro, {type=actionType, data=data, delay=delay})
+    lastActionTime = now
+end
+
+local function placeUnit(unitId, position, rotation)
+    if PlaceTower then
+        PlaceTower:FireServer(unitId, position, rotation)
+        recordAction("place", {unit=unitId, pos=position, r=rotation})
+    end
+end
+
+local function upgradeUnit(unitId)
+    if UpgradeTower then
+        UpgradeTower:FireServer(unitId)
+        recordAction("upgrade", {id=unitId})
+    end
+end
 
 local function playMacro()
-    macroRunning = true
-    while macroRunning do
-        for _, step in ipairs(MACRO) do
-            if step.type == "place" and PlaceTower then
-                PlaceTower:FireServer(step.unit, step.pos, step.r)
-            elseif step.type == "upgrade" and UpgradeTower then
-                UpgradeTower:FireServer(step.id)
-            end
-            task.wait(0.4)
-        end
-        task.wait(1)
+    if #macro == 0 then
+        print("❌ Aucune macro enregistrée")
+        return
     end
+    macroRunning = true
+    task.spawn(function()
+        while macroRunning do
+            for _, step in ipairs(macro) do
+                task.wait(step.delay)
+                if step.type == "place" then
+                    placeUnit(step.data.unit, step.data.pos, step.data.r)
+                elseif step.type == "upgrade" then
+                    upgradeUnit(step.data.id)
+                end
+            end
+            task.wait(1)
+        end
+    end)
+end
+
+local function stopMacro()
+    macroRunning = false
 end
 
 -- ========= BUTTONS =========
 local tpBtn   = button("AUTO TP + E", 10)
 local playBtn = button("PLAY MACRO (∞)", 60)
 local stopBtn = button("STOP MACRO", 110)
+local recordBtn = button("START RECORD", 160)
+local stopRecordBtn = button("STOP RECORD", 210)
 
 tpBtn.MouseButton1Click:Connect(autoTP)
-
 playBtn.MouseButton1Click:Connect(function()
     if not macroRunning then
-        task.spawn(playMacro)
+        playMacro()
     end
 end)
+stopBtn.MouseButton1Click:Connect(stopMacro)
+recordBtn.MouseButton1Click:Connect(startRecording)
+stopRecordBtn.MouseButton1Click:Connect(stopRecording)
 
-stopBtn.MouseButton1Click:Connect(function()
-    macroRunning = false
-end)
-
-print("✅ SCRIPT CHARGÉ SANS ERREUR (DELTA OK)")
+print("✅ SCRIPT CHARGÉ SANS ERREUR (AUTO TP + MACRO ENREGISTRABLE OK)")
