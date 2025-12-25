@@ -1,5 +1,5 @@
 -- =====================================
--- AUTO REEXEC APRES TELEPORT (OBLIGATOIRE)
+-- AUTO REEXEC APRES TELEPORT
 -- =====================================
 local RAW_URL = "https://raw.githubusercontent.com/derdouryasser2-del/test.lua/refs/heads/main/test.lua"
 
@@ -13,7 +13,7 @@ end
 -- ========= CONFIG AUTO TP =========
 local TARGET_CFRAME =
     CFrame.new(-51.3, 3.2, 62.9)
-    * CFrame.Angles(0, math.rad(180), 0) -- direction précise
+    * CFrame.Angles(0, math.rad(180), 0)
 
 local E_REPEAT = 5
 local E_INTERVAL = 1
@@ -25,12 +25,17 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local UserInputService = game:GetService("UserInputService")
 local player = Players.LocalPlayer
 
--- ========= REMOTES =========
-local PlaceTower =
-    ReplicatedStorage.GenericModules.Service.Network.PlayerPlaceTower
+-- ========= NETWORK MODULE (FIX DELTA) =========
+local Network = require(
+    ReplicatedStorage
+        :WaitForChild("GenericModules")
+        :WaitForChild("Service")
+        :WaitForChild("Network")
+)
 
-local UpgradeTower =
-    ReplicatedStorage.GenericModules.Service.Network:FindFirstChild("PlayerUpgradeTower")
+local PlaceTower = Network.PlayerPlaceTower
+local UpgradeTower = Network.PlayerUpgradeTower
+-- ============================================
 
 -- ========= CLEAN GUI =========
 pcall(function()
@@ -112,4 +117,60 @@ local function autoTP()
     local char = player.Character
     if not char or not char:FindFirstChild("HumanoidRootPart") then return end
 
-    char.HumanoidRootPart.CFram
+    char.HumanoidRootPart.CFrame = TARGET_CFRAME
+    task.wait(0.3)
+
+    for i = 1, E_REPEAT do
+        local prompt = getClosestPrompt(15)
+        if prompt then
+            prompt:InputHoldBegin()
+            task.wait(prompt.HoldDuration or 0.4)
+            prompt:InputHoldEnd()
+        end
+        task.wait(E_INTERVAL)
+    end
+end
+
+-- ========= MACRO MANUELLE =========
+-- ✍️ TU MODIFIES ICI
+local MACRO = {
+    {type="place", unit="3881493602:7449", pos=Vector3.new(-76.7,126.2,-215.5), r=0},
+    {type="upgrade", id=1},
+    {type="upgrade", id=1},
+}
+
+local macroRunning = false
+
+local function playMacro()
+    macroRunning = true
+    while macroRunning do
+        for _, step in ipairs(MACRO) do
+            if step.type == "place" and PlaceTower then
+                PlaceTower:FireServer(step.unit, step.pos, step.r)
+            elseif step.type == "upgrade" and UpgradeTower then
+                UpgradeTower:FireServer(step.id)
+            end
+            task.wait(0.4)
+        end
+        task.wait(1)
+    end
+end
+
+-- ========= BUTTONS =========
+local tpBtn   = button("AUTO TP + E", 10)
+local playBtn = button("PLAY MACRO (∞)", 60)
+local stopBtn = button("STOP MACRO", 110)
+
+tpBtn.MouseButton1Click:Connect(autoTP)
+
+playBtn.MouseButton1Click:Connect(function()
+    if not macroRunning then
+        task.spawn(playMacro)
+    end
+end)
+
+stopBtn.MouseButton1Click:Connect(function()
+    macroRunning = false
+end)
+
+print("✅ SCRIPT CHARGÉ SANS ERREUR (DELTA OK)")
